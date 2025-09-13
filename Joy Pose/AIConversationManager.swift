@@ -280,3 +280,4 @@ struct TaskMetrics {
         duration = Date().timeIntervalSince(startTime)
     }
 }
+

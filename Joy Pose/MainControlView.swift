@@ -214,27 +214,64 @@ struct MainControlView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(3)
 
-            // Action Button
-            if rooCodeConnectionManager.isConnected {
-                Button(action: {
-                    if windowManager.isAIAgentsOpen {
-                        dismissWindow(id: "ai-agents")
-                        windowManager.disableAIAgents()
-                    } else {
-                        windowManager.enableAIAgents()
-                        openWindow(id: "ai-agents")
+            // Action Buttons
+            HStack(spacing: 8) {
+                if rooCodeConnectionManager.isConnected {
+                    Button(action: {
+                        if windowManager.isAIAgentsOpen {
+                            dismissWindow(id: "ai-agents")
+                            windowManager.disableAIAgents()
+                        } else {
+                            windowManager.enableAIAgents()
+                            openWindow(id: "ai-agents")
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: windowManager.isAIAgentsOpen ? "xmark.circle" : "plus.circle")
+                            Text(windowManager.isAIAgentsOpen ? "Close AI Agents" : "Open AI Agents")
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                     }
-                }) {
-                    HStack {
-                        Image(systemName: windowManager.isAIAgentsOpen ? "xmark.circle" : "plus.circle")
-                        Text(windowManager.isAIAgentsOpen ? "Close AI Agents" : "Open AI Agents")
+                    .buttonStyle(.borderedProminent)
+                    .tint(windowManager.isAIAgentsOpen ? .red : .blue)
+                    .controlSize(.small)
+                } else {
+                    // 连接失败或断开时显示重新连接按钮
+                    Button(action: {
+                        Task {
+                            await reconnectToRooCode()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: rooCodeConnectionManager.connectionState == .connecting ? "arrow.clockwise" : "arrow.clockwise.circle")
+                            Text(rooCodeConnectionManager.connectionState == .connecting ? "Scanning..." : "Reconnect")
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                     }
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
+                    .controlSize(.small)
+                    .disabled(rooCodeConnectionManager.connectionState == .connecting)
+                    
+                    // 如果连接失败，显示更多选项菜单
+                    if case .failed = rooCodeConnectionManager.connectionState {
+                        Menu {
+                            Button("Refresh Services") {
+                                rooCodeConnectionManager.refreshServices()
+                            }
+                            
+                            Button("Clear Error") {
+                                rooCodeConnectionManager.clearError()
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(windowManager.isAIAgentsOpen ? .red : .blue)
-                .controlSize(.small)
             }
         }
         .padding(20)
@@ -453,6 +490,22 @@ struct MainControlView: View {
         }
         .buttonStyle(.plain)
         .disabled(!isAvailable)
+    }
+
+    // MARK: - Helper Methods
+    
+    /// 重新连接到 Roo Code 服务
+    private func reconnectToRooCode() async {
+        logger.info("User triggered Roo Code reconnection", category: .connection)
+        
+        // 先断开现有连接
+        rooCodeConnectionManager.disconnect()
+        
+        // 清除错误状态
+        rooCodeConnectionManager.clearError()
+        
+        // 重新开始扫描和连接
+        rooCodeConnectionManager.startScanning()
     }
 
     // MARK: - Helper Properties

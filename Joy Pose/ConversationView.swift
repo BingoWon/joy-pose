@@ -69,3 +69,4 @@ struct ConversationView: View {
         // Handle message interactions (copy, etc.)
     }
 }
+
