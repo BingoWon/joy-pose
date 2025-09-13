@@ -128,19 +128,14 @@ struct FilePreviewView: View {
                 .padding(.bottom, 8)
             }
 
-            // Simple text editor
-            if isEditing {
-                TextEditor(text: $editableContent)
-                    .font(.system(.body, design: .monospaced))
-                    .padding(16)
-            } else {
-                ScrollView {
-                    Text(fileContent)
-                        .font(.system(.body, design: .monospaced))
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
+            // Professional code editor with syntax highlighting and line numbers
+            RunestoneTextView(
+                text: isEditing ? $editableContent : .constant(fileContent),
+                filePath: file.path,
+                isEditable: isEditing,
+                font: .monospacedSystemFont(ofSize: 14, weight: .regular)
+            )
+            .background(.background)
         }
     }
     
