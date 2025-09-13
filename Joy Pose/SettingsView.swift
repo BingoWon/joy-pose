@@ -71,3 +71,4 @@ struct SettingsView: View {
     SettingsView()
         .environment(PoseAppModel())
 }
+

@@ -206,3 +206,4 @@ extension PoseHistoryModel {
 // MARK: - Type Aliases
 
 typealias PoseSession = PoseAppModel.PoseSession
+

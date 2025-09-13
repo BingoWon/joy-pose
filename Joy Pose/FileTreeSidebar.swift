@@ -247,3 +247,4 @@ struct FileTreeRowView: View {
         return "doc.text"
     }
 }
+

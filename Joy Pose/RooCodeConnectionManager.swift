@@ -36,3 +36,4 @@ class RooCodeConnectionManager {
         connectionState == .connected
     }
 }
+

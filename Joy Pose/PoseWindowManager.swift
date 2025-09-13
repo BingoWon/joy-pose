@@ -77,3 +77,4 @@ class PoseWindowManager {
         return count
     }
 }
+

@@ -50,3 +50,4 @@ class JoyPoseLogger {
 
 /// Global logger instance for convenience
 let logger = JoyPoseLogger.shared
+

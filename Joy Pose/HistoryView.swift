@@ -129,3 +129,4 @@ struct HistoryView: View {
     HistoryView()
         .environment(PoseAppModel())
 }
+
