@@ -288,4 +288,28 @@ class RemoteHostManager {
         }
         await loadDirectory()
     }
+    
+    // MARK: - Connection Testing
+    
+    func testConnection(_ config: HostConfiguration) async -> Bool {
+        do {
+            logger.info("Testing SSH connection to \(config.hostname):\(config.port)", category: .connection)
+            
+            let settings = SSHClientSettings(
+                host: config.hostname,
+                port: config.port,
+                authenticationMethod: { .passwordBased(username: config.username, password: config.password) },
+                hostKeyValidator: .acceptAnything()
+            )
+            
+            let client = try await SSHClient.connect(to: settings)
+            try await client.close()
+            
+            logger.info("Connection test successful", category: .connection)
+            return true
+        } catch {
+            logger.error("Connection test failed: \(error.localizedDescription)", category: .connection)
+            return false
+        }
+    }
 }
