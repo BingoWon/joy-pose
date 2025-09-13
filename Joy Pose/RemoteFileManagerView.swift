@@ -10,8 +10,11 @@ import UniformTypeIdentifiers
 
 /// Modern VSCode-style remote file manager with optimized architecture
 struct RemoteFileManagerView: View {
-    @State private var hostManager = RemoteHostManager.shared
-    @State private var windowManager = WindowManager.shared
+    // Use shared instances to avoid state conflicts
+    private let hostManager = RemoteHostManager.shared
+    private let windowManager = WindowManager.shared
+    
+    // Local UI state only
     @State private var fileTreeManager = FileTreeManager()
     @State private var selectedFile: RemoteFile?
     @State private var showingFileImporter = false

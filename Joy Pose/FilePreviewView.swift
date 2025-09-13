@@ -239,35 +239,15 @@ struct FilePreviewView: View {
 
     // MARK: - File Type Detection
     private func isCodeFile(_ file: RemoteFile) -> Bool {
-        let ext = file.name.lowercased()
-        return ext.hasSuffix(".swift") || ext.hasSuffix(".py") || ext.hasSuffix(".js") || 
-               ext.hasSuffix(".ts") || ext.hasSuffix(".html") || ext.hasSuffix(".css") ||
-               ext.hasSuffix(".json") || ext.hasSuffix(".xml") || ext.hasSuffix(".java") ||
-               ext.hasSuffix(".cpp") || ext.hasSuffix(".c") || ext.hasSuffix(".h")
+        return LanguageMapper.isCodeFile(file.name)
     }
 
     private func isImageFile(_ file: RemoteFile) -> Bool {
-        let ext = file.name.lowercased()
-        return ext.hasSuffix(".jpg") || ext.hasSuffix(".jpeg") || ext.hasSuffix(".png") || 
-               ext.hasSuffix(".gif") || ext.hasSuffix(".svg") || ext.hasSuffix(".bmp")
+        return LanguageMapper.isImageFile(file.name)
     }
 
     private func fileIcon(for file: RemoteFile) -> String {
-        if file.isDirectory {
-            return "folder.fill"
-        }
-
-        let ext = file.name.lowercased()
-        if ext.hasSuffix(".swift") { return "swift" }
-        if ext.hasSuffix(".py") { return "doc.text.fill" }
-        if ext.hasSuffix(".js") || ext.hasSuffix(".ts") { return "doc.text.fill" }
-        if ext.hasSuffix(".java") || ext.hasSuffix(".cpp") || ext.hasSuffix(".c") { return "doc.text.fill" }
-        if ext.hasSuffix(".json") || ext.hasSuffix(".xml") { return "doc.badge.gearshape" }
-        if ext.hasSuffix(".png") || ext.hasSuffix(".jpg") || ext.hasSuffix(".gif") { return "photo" }
-        if ext.hasSuffix(".zip") || ext.hasSuffix(".tar") || ext.hasSuffix(".gz") { return "doc.zipper" }
-        if ext.hasSuffix(".md") { return "doc.richtext" }
-        if ext.hasSuffix(".txt") { return "doc.text" }
-        return "doc"
+        return LanguageMapper.fileIcon(for: file.name, isDirectory: file.isDirectory)
     }
     
     private func formatFileSize(_ size: Int64) -> String {

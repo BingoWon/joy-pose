@@ -9,7 +9,7 @@ import SwiftUI
 import Foundation
 
 /// Optimized file tree management with caching and performance optimization
-@Observable
+@MainActor @Observable
 final class FileTreeManager {
     
     // MARK: - State Management

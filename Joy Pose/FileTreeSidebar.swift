@@ -95,11 +95,20 @@ struct FileTreeSidebar: View {
     // MARK: - Helper Methods
 
     private func initializeFileTree() async {
-        // Expand root directory first
-        await loadDirectory("/")
+        // Only initialize if we have a connection
+        guard hostManager.connectionState == .connected else { return }
+        
+        // Initialize basic state first (non-blocking)
+        fileTreeManager.expandedDirectories.insert("/")
+        
+        // Load data asynchronously to avoid blocking UI
+        Task {
+            // Expand root directory first
+            await loadDirectory("/")
 
-        // Auto-expand path to current directory
-        await expandPathToCurrentDirectory()
+            // Auto-expand path to current directory
+            await expandPathToCurrentDirectory()
+        }
     }
 
     private func expandPathToCurrentDirectory() async {
@@ -110,26 +119,22 @@ struct FileTreeSidebar: View {
         for component in pathComponents {
             buildPath += "/" + component
 
-            // Expand this directory
-            await MainActor.run {
-                fileTreeManager.expandedDirectories.insert(buildPath)
-            }
+            // Expand this directory (FileTreeManager is now @MainActor)
+            fileTreeManager.expandedDirectories.insert(buildPath)
 
             // Load directory contents
             await loadDirectory(buildPath)
         }
 
-        // Ensure root is expanded
-        await MainActor.run {
-            fileTreeManager.expandedDirectories.insert("/")
-        }
+        // Ensure root is expanded (FileTreeManager is now @MainActor)
+        fileTreeManager.expandedDirectories.insert("/")
     }
 
     private func loadDirectory(_ path: String) async {
         // Perform network operation on background thread
         let files = await hostManager.getDirectoryContents(path)
 
-        // Update cache on main thread to ensure UI consistency
+        // Update cache on main thread
         await MainActor.run {
             fileTreeManager.cacheFiles(files, for: path)
         }
@@ -232,19 +237,7 @@ struct FileTreeRowView: View {
         if file.isDirectory {
             return fileTreeManager.isExpanded(file.path) ? "folder.fill" : "folder"
         }
-
-        let ext = file.name.lowercased()
-        if ext.hasSuffix(".swift") { return "swift" }
-        if ext.hasSuffix(".py") { return "doc.text" }
-        if ext.hasSuffix(".js") || ext.hasSuffix(".ts") { return "doc.text" }
-        if ext.hasSuffix(".html") || ext.hasSuffix(".css") { return "doc.text" }
-        if ext.hasSuffix(".json") || ext.hasSuffix(".xml") { return "doc.text" }
-        if ext.hasSuffix(".md") || ext.hasSuffix(".txt") { return "doc.plaintext" }
-        if ext.hasSuffix(".jpg") || ext.hasSuffix(".png") || ext.hasSuffix(".gif") { return "photo" }
-        if ext.hasSuffix(".pdf") { return "doc.richtext" }
-        if ext.hasSuffix(".zip") || ext.hasSuffix(".tar") || ext.hasSuffix(".gz") { return "archivebox" }
-
-        return "doc.text"
+        return LanguageMapper.fileIcon(for: file.name, isDirectory: file.isDirectory)
     }
 }
 
