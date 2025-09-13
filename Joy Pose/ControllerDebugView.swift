@@ -6,12 +6,21 @@
 //
 
 import SwiftUI
+import GameController
 
-// MARK: - Controller Debug View (UI Only)
+// MARK: - Controller Debug View with Real-time Display
 
 struct ControllerDebugView: View {
     var onClose: (() -> Void)? = nil
-
+    
+    // Controller state management
+    @State private var isControllerConnected = false
+    @State private var controllerName = ""
+    @State private var batteryLevel: Float = 0.0
+    @State private var buttonStates = ButtonStates()
+    @State private var triggerValues = TriggerValues()
+    @State private var stickValues = StickValues()
+    
     // Rainbow color configuration for light bar demo
     private let rainbowColors: [(name: String, color: Color, rgb: (Float, Float, Float))] = [
         ("Red", .red, (1.0, 0.0, 0.0)),
@@ -48,6 +57,12 @@ struct ControllerDebugView: View {
         }
         .frame(minWidth: 700, maxWidth: 900, minHeight: 500, maxHeight: 800)
         .fixedSize(horizontal: false, vertical: true)
+        .onAppear {
+            setupControllerObservation()
+        }
+        .onDisappear {
+            removeControllerObservation()
+        }
     }
 
     private var headerView: some View {
@@ -56,11 +71,11 @@ struct ControllerDebugView: View {
             HStack(spacing: 8) {
                 Image(systemName: "playstation.logo")
                     .font(.title2)
-                    .foregroundColor(.blue)
+                    .foregroundColor(isControllerConnected ? .blue : .gray)
 
                 Image(systemName: "gamecontroller.fill")
                     .font(.title2)
-                    .foregroundColor(.green)
+                    .foregroundColor(isControllerConnected ? .green : .red)
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -68,9 +83,15 @@ struct ControllerDebugView: View {
                     .font(.headline)
                     .fontWeight(.bold)
 
-                Text("Connected (UI Demo)")
+                Text(isControllerConnected ? "\(controllerName) - Connected" : "No Controller Connected")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                
+                if isControllerConnected && batteryLevel > 0 {
+                    Text("Battery: \(Int(batteryLevel * 100))%")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
 
             Spacer()
@@ -305,24 +326,24 @@ struct ControllerDebugView: View {
                 GridItem(.flexible())
             ], spacing: 8) {
                 // Button function items - with real-time status display
-                enhancedFunctionItem("Cross (×)", "Execute command", .green, isPressed: true)
-                enhancedFunctionItem("Circle (○)", "Delete", .orange, isPressed: false)
-                enhancedFunctionItem("Square (□)", "Backspace", .blue, isPressed: false)
-                enhancedFunctionItem("Triangle (△)", "Quick commands", .purple, isPressed: true)
-                enhancedFunctionItem("L1", "Previous word", .cyan, isPressed: false)
-                enhancedFunctionItem("R1", "Next word", .cyan, isPressed: false)
+                enhancedFunctionItem("Cross (×)", "Execute command", .green, isPressed: buttonStates.buttonA)
+                enhancedFunctionItem("Circle (○)", "Delete", .orange, isPressed: buttonStates.buttonB)
+                enhancedFunctionItem("Square (□)", "Backspace", .blue, isPressed: buttonStates.buttonX)
+                enhancedFunctionItem("Triangle (△)", "Quick commands", .purple, isPressed: buttonStates.buttonY)
+                enhancedFunctionItem("L1", "Previous word", .cyan, isPressed: buttonStates.leftShoulder)
+                enhancedFunctionItem("R1", "Next word", .cyan, isPressed: buttonStates.rightShoulder)
 
                 // Trigger function items - with pressure value display
-                enhancedTriggerItem(trigger: "L2", function: "Scroll up", color: .yellow, triggerValue: 0.3)
-                enhancedTriggerItem(trigger: "R2", function: "Scroll down", color: .yellow, triggerValue: 0.7)
+                enhancedTriggerItem(trigger: "L2", function: "Scroll up", color: .yellow, triggerValue: triggerValues.leftTrigger)
+                enhancedTriggerItem(trigger: "R2", function: "Scroll down", color: .yellow, triggerValue: triggerValues.rightTrigger)
 
                 // D-pad function items - with status display
-                enhancedDPadItem(dpad: "D-Pad ↑↓", function: "Command history", color: .pink, isActive: true)
-                enhancedDPadItem(dpad: "D-Pad ←→", function: "Move cursor", color: .pink, isActive: false)
+                enhancedDPadItem(dpad: "D-Pad ↑↓", function: "Command history", color: .pink, isActive: buttonStates.dpadUp || buttonStates.dpadDown)
+                enhancedDPadItem(dpad: "D-Pad ←→", function: "Move cursor", color: .pink, isActive: buttonStates.dpadLeft || buttonStates.dpadRight)
 
                 // Joystick function items - with position display
-                enhancedStickItem(stick: "Left Stick", function: "Cursor control", color: .mint, position: "(-0.3, 0.2)")
-                enhancedStickItem(stick: "Right Stick", function: "Scroll terminal", color: .mint, position: "(0.5, -0.3)")
+                enhancedStickItem(stick: "Left Stick", function: "Cursor control", color: .mint, position: "(\(String(format: "%.1f", stickValues.leftStickX)), \(String(format: "%.1f", stickValues.leftStickY)))")
+                enhancedStickItem(stick: "Right Stick", function: "Scroll terminal", color: .mint, position: "(\(String(format: "%.1f", stickValues.rightStickX)), \(String(format: "%.1f", stickValues.rightStickY)))")
             }
         }
         .padding(16)
@@ -584,6 +605,151 @@ struct FeatureCard: View {
         }
         .padding(12)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - Controller State Management
+
+struct ButtonStates {
+    var buttonA = false
+    var buttonB = false  
+    var buttonX = false
+    var buttonY = false
+    var leftShoulder = false
+    var rightShoulder = false
+    var dpadUp = false
+    var dpadDown = false
+    var dpadLeft = false
+    var dpadRight = false
+}
+
+struct TriggerValues {
+    var leftTrigger: Float = 0.0
+    var rightTrigger: Float = 0.0
+}
+
+struct StickValues {
+    var leftStickX: Float = 0.0
+    var leftStickY: Float = 0.0
+    var rightStickX: Float = 0.0
+    var rightStickY: Float = 0.0
+}
+
+// MARK: - Controller Management Extension
+
+extension ControllerDebugView {
+    
+    func setupControllerObservation() {
+        // Setup notifications for controller connections
+        NotificationCenter.default.addObserver(
+            forName: .GCControllerDidConnect,
+            object: nil,
+            queue: .main
+        ) { _ in
+            updateControllerState()
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .GCControllerDidDisconnect,
+            object: nil,
+            queue: .main
+        ) { _ in
+            updateControllerState()
+        }
+        
+        // Check for existing controllers
+        updateControllerState()
+    }
+    
+    func removeControllerObservation() {
+        NotificationCenter.default.removeObserver(self, name: .GCControllerDidConnect, object: nil)
+        NotificationCenter.default.removeObserver(self, name: .GCControllerDidDisconnect, object: nil)
+    }
+    
+    func updateControllerState() {
+        guard let controller = GCController.controllers().first else {
+            isControllerConnected = false
+            controllerName = ""
+            batteryLevel = 0.0
+            resetControllerValues()
+            return
+        }
+        
+        isControllerConnected = true
+        controllerName = controller.vendorName ?? "Unknown Controller"
+        
+        // Get battery level if available
+        if let battery = controller.battery {
+            batteryLevel = battery.batteryLevel
+        }
+        
+        // Setup input handlers
+        setupInputHandlers(for: controller)
+    }
+    
+    func setupInputHandlers(for controller: GCController) {
+        // Extended gamepad (most modern controllers)
+        if let extendedGamepad = controller.extendedGamepad {
+            // Button inputs
+            extendedGamepad.buttonA.valueChangedHandler = { _, _, pressed in
+                buttonStates.buttonA = pressed
+            }
+            extendedGamepad.buttonB.valueChangedHandler = { _, _, pressed in
+                buttonStates.buttonB = pressed
+            }
+            extendedGamepad.buttonX.valueChangedHandler = { _, _, pressed in
+                buttonStates.buttonX = pressed
+            }
+            extendedGamepad.buttonY.valueChangedHandler = { _, _, pressed in
+                buttonStates.buttonY = pressed
+            }
+            
+            // Shoulder buttons
+            extendedGamepad.leftShoulder.valueChangedHandler = { _, _, pressed in
+                buttonStates.leftShoulder = pressed
+            }
+            extendedGamepad.rightShoulder.valueChangedHandler = { _, _, pressed in
+                buttonStates.rightShoulder = pressed
+            }
+            
+            // Triggers
+            extendedGamepad.leftTrigger.valueChangedHandler = { _, value, _ in
+                triggerValues.leftTrigger = value
+            }
+            extendedGamepad.rightTrigger.valueChangedHandler = { _, value, _ in
+                triggerValues.rightTrigger = value
+            }
+            
+            // D-Pad
+            extendedGamepad.dpad.up.valueChangedHandler = { _, _, pressed in
+                buttonStates.dpadUp = pressed
+            }
+            extendedGamepad.dpad.down.valueChangedHandler = { _, _, pressed in
+                buttonStates.dpadDown = pressed
+            }
+            extendedGamepad.dpad.left.valueChangedHandler = { _, _, pressed in
+                buttonStates.dpadLeft = pressed
+            }
+            extendedGamepad.dpad.right.valueChangedHandler = { _, _, pressed in
+                buttonStates.dpadRight = pressed
+            }
+            
+            // Thumbsticks
+            extendedGamepad.leftThumbstick.valueChangedHandler = { _, xValue, yValue in
+                stickValues.leftStickX = xValue
+                stickValues.leftStickY = yValue
+            }
+            extendedGamepad.rightThumbstick.valueChangedHandler = { _, xValue, yValue in
+                stickValues.rightStickX = xValue
+                stickValues.rightStickY = yValue
+            }
+        }
+    }
+    
+    func resetControllerValues() {
+        buttonStates = ButtonStates()
+        triggerValues = TriggerValues()
+        stickValues = StickValues()
     }
 }
 
