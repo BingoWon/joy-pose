@@ -295,15 +295,17 @@ struct RooCodeService: Codable, Sendable, Identifiable {
     }
 }
 
-/// Roo Code 服务发现管理器
+/// Modern Roo Code service discovery manager with real network scanning
 @MainActor
 @Observable
 final class RooCodeDiscoveryService {
     private(set) var discoveredServices: [RooCodeService] = []
     private(set) var isScanning = false
     private(set) var error: String?
+    private(set) var networkInfo: NetworkScanner.NetworkInfo?
 
     private var scanningTask: Task<Void, Never>?
+    private let networkScanner = NetworkScanner()
 
     func startScanning(preserveServices: Bool = false) {
         guard !isScanning else { return }
@@ -316,7 +318,7 @@ final class RooCodeDiscoveryService {
         error = nil
 
         scanningTask = Task { @MainActor in
-            await performServiceDiscovery()
+            await performRealServiceDiscovery()
             isScanning = false
         }
     }
@@ -327,28 +329,45 @@ final class RooCodeDiscoveryService {
         isScanning = false
     }
 
-    private func performServiceDiscovery() async {
-        // 模拟服务发现 - 在实际实现中，这里会扫描网络上的 Roo Code 实例
+    private func performRealServiceDiscovery() async {
         do {
-            try await Task.sleep(for: .seconds(2))
-
-            // 模拟发现的服务
-            let mockService = RooCodeService(
-                name: "Roo Code - Local",
-                websocketURL: URL(string: "ws://localhost:8765")!,
-                version: "1.0.0",
-                platform: "macOS",
-                app: "Roo Code",
-                capabilities: ["ai_conversation", "trigger_send", "echo", "ping_pong"]
-            )
-
+            // Get network information
+            guard let networkInfo = await networkScanner.getNetworkInfo() else {
+                throw DiscoveryError.networkInfoFailed
+            }
+            
+            self.networkInfo = networkInfo
+            logger.info("Network scan starting on \(networkInfo.networkSegment)", category: .connection)
+            
+            // Scan network segment for services
+            let services = await networkScanner.scanForServices(in: networkInfo.networkSegment)
+            
             if !Task.isCancelled {
-                discoveredServices = [mockService]
+                discoveredServices = services
+                logger.info("Found \(services.count) Roo Code services", category: .connection)
+                
+                if services.isEmpty {
+                    error = "No Roo Code services found on network \(networkInfo.networkSegment)"
+                }
             }
         } catch {
             if !Task.isCancelled {
-                self.error = "Service discovery failed: \(error.localizedDescription)"
+                self.error = "Network discovery failed: \(error.localizedDescription)"
+                logger.error("Service discovery error: \(error)", category: .connection)
             }
+        }
+    }
+}
+
+// MARK: - Discovery Errors
+
+private enum DiscoveryError: LocalizedError {
+    case networkInfoFailed
+    
+    var errorDescription: String? {
+        switch self {
+        case .networkInfoFailed:
+            return "Failed to get network information"
         }
     }
 }
