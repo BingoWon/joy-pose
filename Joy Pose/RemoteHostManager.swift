@@ -7,12 +7,26 @@
 
 import Foundation
 import Citadel
+import NIOCore
 
 enum ConnectionState: Equatable {
     case disconnected
     case connecting
     case connected
     case failed(String)
+    
+    var description: String {
+        switch self {
+        case .disconnected:
+            return "Disconnected"
+        case .connecting:
+            return "Connecting"
+        case .connected:
+            return "Connected"
+        case .failed(let error):
+            return "Failed: \(error)"
+        }
+    }
 }
 
 struct HostConfiguration: Codable, Identifiable, Equatable {
@@ -28,13 +42,21 @@ struct HostConfiguration: Codable, Identifiable, Equatable {
     }
 }
 
-struct RemoteFile: Identifiable, Codable {
+struct RemoteFile: Identifiable, Codable, Hashable {
     let id = UUID()
     let name: String
     let path: String
     let isDirectory: Bool
     let size: Int64
     let modificationDate: Date
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: RemoteFile, rhs: RemoteFile) -> Bool {
+        return lhs.id == rhs.id
+    }
 }
 
 @Observable
@@ -273,11 +295,11 @@ class RemoteHostManager {
             // Use remove method for both files and directories
             try await sftp.remove(at: file.path)
 
-            logger.info("Deleted file: \(file.path)", category: .terminal)
+            logger.info("Deleted file: \(file.path)", category: .connection)
             await loadDirectory()
 
         } catch {
-            logger.error("Failed to delete file \(file.path): \(error.localizedDescription)", category: .terminal)
+            logger.error("Failed to delete file \(file.path): \(error.localizedDescription)", category: .connection)
             throw error
         }
     }
@@ -312,4 +334,159 @@ class RemoteHostManager {
             return false
         }
     }
+    
+    // MARK: - File Management Operations
+    
+    /// Get directory contents without changing current directory
+    func getDirectoryContents(_ path: String) async -> [RemoteFile] {
+        guard let sftp = sftpClient else {
+            logger.warning("SFTP client not available for directory: \(path)", category: .connection)
+            return []
+        }
+
+        logger.info("Getting directory contents: \(path)", category: .connection)
+
+        do {
+            // Add timeout to prevent hanging
+            return try await withTimeout(seconds: 10) {
+                // Use getRealPath to resolve the actual path first
+                let realPath = try await sftp.getRealPath(atPath: path)
+                logger.debug("Real path resolved: \(realPath)", category: .connection)
+
+                // List directory contents using the resolved path
+                let directoryContents = try await sftp.listDirectory(atPath: realPath)
+                logger.debug("Directory listing successful, found \(directoryContents.count) items", category: .connection)
+
+                var remoteFiles: [RemoteFile] = []
+
+                // Process each SFTPMessage.Name response
+                for nameResponse in directoryContents {
+                    for component in nameResponse.components {
+                        let fileName = component.filename
+                        let fullPath = "\(realPath)/\(fileName)"
+
+                        // Skip current and parent directory entries
+                        if fileName == "." || fileName == ".." {
+                            continue
+                        }
+
+                        // Use the attributes from the component
+                        let attributes = component.attributes
+
+                        // Check if it's a directory based on permissions
+                        var isDirectory = false
+                        if let permissions = attributes.permissions {
+                            // Check if it's a directory using bitwise operations
+                            isDirectory = (permissions & 0o040000) != 0  // S_IFDIR
+                        }
+
+                        let fileSize = Int64(attributes.size ?? 0)
+
+                        // Use modification time from attributes or current date as fallback
+                        let modDate: Date
+                        if let accessModTime = attributes.accessModificationTime {
+                            modDate = accessModTime.modificationTime
+                        } else {
+                            modDate = Date()
+                        }
+
+                        let remoteFile = RemoteFile(
+                            name: fileName,
+                            path: fullPath,
+                            isDirectory: isDirectory,
+                            size: fileSize,
+                            modificationDate: modDate
+                        )
+
+                        remoteFiles.append(remoteFile)
+                    }
+                }
+
+                // Sort files: directories first, then alphabetically
+                remoteFiles.sort { file1, file2 in
+                    if file1.isDirectory != file2.isDirectory {
+                        return file1.isDirectory
+                    }
+                    return file1.name.localizedCaseInsensitiveCompare(file2.name) == .orderedAscending
+                }
+
+                logger.info("Successfully loaded \(remoteFiles.count) files from \(realPath)", category: .connection)
+                return remoteFiles
+            }
+        } catch {
+            logger.error("Failed to get directory contents for \(path): \(error.localizedDescription)", category: .connection)
+            return []
+        }
+    }
+    
+    /// Download file content as Data
+    func downloadFile(at path: String) async -> Data? {
+        guard let sftp = sftpClient else { return nil }
+
+        do {
+            let data = try await sftp.withFile(filePath: path, flags: .read) { file in
+                try await file.readAll()
+            }
+
+            logger.info("Downloaded file: \(path)", category: .connection)
+            return Data(buffer: data)
+
+        } catch {
+            logger.error("Failed to download file \(path): \(error.localizedDescription)", category: .connection)
+            return nil
+        }
+    }
+
+    /// Upload file data to remote path
+    func uploadFile(data: Data, to path: String) async -> Bool {
+        guard let sftp = sftpClient else { return false }
+
+        do {
+            try await sftp.withFile(filePath: path, flags: [.write, .forceCreate]) { file in
+                let buffer = ByteBuffer(data: data)
+                try await file.write(buffer, at: 0)
+            }
+
+            logger.info("Uploaded file: \(path)", category: .connection)
+            return true
+
+        } catch {
+            logger.error("Failed to upload file \(path): \(error.localizedDescription)", category: .connection)
+            return false
+        }
+    }
+
+    
+    // MARK: - Helper Methods
+    
+    /// Helper function to add timeout to async operations
+    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
+        return try await withThrowingTaskGroup(of: T.self) { group in
+            // Add the main operation task
+            group.addTask {
+                try await operation()
+            }
+
+            // Add the timeout task
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw TimeoutError()
+            }
+
+            // Return the first completed task result
+            guard let result = try await group.next() else {
+                throw TimeoutError()
+            }
+            
+            // Cancel remaining tasks
+            group.cancelAll()
+            
+            return result
+        }
+    }
+}
+
+/// Custom timeout error
+private struct TimeoutError: Error {
+    let localizedDescription = "Operation timed out"
 }
