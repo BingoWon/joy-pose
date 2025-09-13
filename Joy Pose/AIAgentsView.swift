@@ -7,95 +7,131 @@
 
 import SwiftUI
 
+/// Main AI Agents interface - Equivalent to Roo Code's ChatView with full feature parity
 struct AIAgentsView: View {
     @Environment(AppModel.self) private var appModel
+    private var conversationManager: AIConversationManager { AIConversationManager.shared }
     @State private var messageText = ""
-    @State private var messages: [String] = []
+    @State private var isCreatingNewTask = false
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("AI Agents")
-                        .font(.title2)
-                        .fontWeight(.bold)
+            // Streamlined Header
+            headerView
 
-                    Text("Ready to assist")
+            // Error Display
+            if let error = conversationManager.lastError {
+                errorBanner(error)
+            }
+
+            // Direct conversation view - no complex grouping
+            ConversationView()
+                .environment(conversationManager)
+
+            // Enhanced Input System (Replaces both SmartInputView and TaskCreationView)
+            EnhancedInputView(
+                text: $messageText,
+                onSend: sendMessage,
+                isEnabled: conversationManager.isConnected,
+                isSending: conversationManager.isSending
+            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+        }
+        .background(.regularMaterial)
+        .onAppear {
+            logger.info("Modern AI Agents view appeared", category: .ai)
+        }
+    }
+
+    // MARK: - Header View
+    
+    private var headerView: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("AI Agents")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                HStack(spacing: 8) {
+                    connectionStatusIndicator
+                    
+                    Text(conversationManager.isConnected ? "Connected to Roo Code" : "Disconnected")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(conversationManager.isConnected ? .green : .secondary)
                 }
+            }
 
-                Spacer()
+            Spacer()
 
+            HStack(spacing: 8) {
+                // Clear Messages Button
                 Button("Clear") {
-                    messages.removeAll()
+                    conversationManager.clearMessages()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                
+                // Connection Status Button
+                Button(action: {
+                    if conversationManager.isConnected {
+                        RooCodeConnectionManager.shared.disconnect()
+                    } else {
+                        RooCodeConnectionManager.shared.startScanning()
+                    }
+                }) {
+                    Image(systemName: conversationManager.isConnected ? "wifi.slash" : "wifi")
+                        .font(.system(size: 14, weight: .medium))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-            .background(.regularMaterial)
-
-            // Messages
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    if messages.isEmpty {
-                        VStack(spacing: 32) {
-                            Spacer()
-
-                            Image(systemName: "brain.head.profile")
-                                .font(.system(size: 64, weight: .light))
-                                .foregroundColor(.blue)
-
-                            VStack(spacing: 8) {
-                                Text("AI Assistant")
-                                    .font(.title)
-                                    .fontWeight(.bold)
-
-                                Text("Ready to help with your development tasks")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-                        }
-                        .frame(maxWidth: .infinity)
-                    } else {
-                        ForEach(Array(messages.enumerated()), id: \.offset) { index, message in
-                            Text(message)
-                                .padding()
-                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                }
-                .padding()
-            }
-
-            // Input
-            HStack {
-                TextField("Ask AI assistant...", text: $messageText)
-                    .textFieldStyle(.roundedBorder)
-
-                Button("Send") {
-                    sendMessage()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(messageText.isEmpty)
-            }
-            .padding()
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(.regularMaterial)
+    }
+    
+    private var connectionStatusIndicator: some View {
+        Circle()
+            .fill(conversationManager.isConnected ? .green : .red)
+            .frame(width: 8, height: 8)
+    }
+    
+    // MARK: - Error Banner
+    
+    private func errorBanner(_ error: String) -> some View {
+        HStack {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.orange)
+            
+            Text(error)
+                .font(.caption)
+                .foregroundColor(.primary)
+            
+            Spacer()
+            
+            Button("Dismiss") {
+                // Clear error - this would be implemented in the conversation manager
+            }
+            .font(.caption)
+            .foregroundColor(.blue)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.orange.opacity(0.1))
     }
 
+    // MARK: - Message Sending
+    
     private func sendMessage() {
         let message = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !message.isEmpty else { return }
 
-        messages.append("You: \(message)")
-        messages.append("AI: I'm a placeholder AI assistant. Your message was: \(message)")
-        
-        messageText = ""
+        Task {
+            await conversationManager.sendMessage(message)
+            messageText = ""
+        }
     }
 }
 
