@@ -134,51 +134,65 @@ final class MessageManager {
     private func convertToClineMessage(_ visionMessage: VisionMessage) -> ClineMessage? {
         guard visionMessage.type == .aiConversation else { return nil }
         
-        // 从 payload 中提取消息信息
-        guard let typeString = visionMessage.payload["type"]?.stringValue,
-              let text = visionMessage.payload["text"]?.stringValue else {
+        // 从 payload 中提取消息信息 - 修复为正确的Roo Code格式
+        guard let role = visionMessage.payload["role"]?.stringValue,
+              let content = visionMessage.payload["content"]?.stringValue else {
+            logger.warning("Missing role or content in message payload", category: .ai)
             return nil
         }
         
-        // 解析消息类型
-        let messageType = parseMessageType(from: typeString)
+        // 提取metadata信息
+        let metadata = visionMessage.payload["metadata"]?.objectValue
+        let originalType = metadata?["originalType"]?.stringValue
+        let sayType = metadata?["sayType"]?.stringValue
+        let askType = metadata?["askType"]?.stringValue
         let partial = visionMessage.payload["partial"]?.boolValue
-        let messageId = visionMessage.payload["messageId"]?.stringValue
+        let messageId = metadata?["messageId"]?.stringValue
+        
+        // 根据role和metadata确定消息类型
+        let messageType = determineMessageType(
+            role: role,
+            originalType: originalType,
+            sayType: sayType,
+            askType: askType
+        )
         
         return ClineMessage(
             id: visionMessage.id,
             type: messageType,
-            text: text,
+            text: content,
             partial: partial,
             messageId: messageId,
             timestamp: visionMessage.timestamp
         )
     }
     
-    /// 解析消息类型字符串
-    private func parseMessageType(from typeString: String) -> ClineMessageType {
-        let components = typeString.split(separator: ":")
-        guard components.count == 2 else {
-            return .say(.text) // 默认类型
+    /// 根据role和metadata确定消息类型
+    private func determineMessageType(
+        role: String,
+        originalType: String?,
+        sayType: String?,
+        askType: String?
+    ) -> ClineMessageType {
+        // 根据originalType确定主要类型
+        if let originalType = originalType {
+            if originalType == "ask", let askType = askType {
+                if let ask = ClineAsk(rawValue: askType) {
+                    return .ask(ask)
+                }
+            } else if originalType == "say", let sayType = sayType {
+                if let say = ClineSay(rawValue: sayType) {
+                    return .say(say)
+                }
+            }
         }
         
-        let category = String(components[0])
-        let value = String(components[1])
-        
-        switch category {
-        case "ask":
-            if let ask = ClineAsk(rawValue: value) {
-                return .ask(ask)
-            }
-        case "say":
-            if let say = ClineSay(rawValue: value) {
-                return .say(say)
-            }
-        default:
-            break
+        // 根据role作为fallback
+        if role == "user" {
+            return .ask(.followup)
+        } else {
+            return .say(.text)
         }
-        
-        return .say(.text) // 默认类型
     }
 
     // MARK: - 公开接口

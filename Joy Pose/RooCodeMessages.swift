@@ -304,6 +304,7 @@ final class RooCodeDiscoveryService {
     private(set) var error: String?
 
     private var scanningTask: Task<Void, Never>?
+    private let networkScanner = NetworkScanner()
 
     func startScanning(preserveServices: Bool = false) {
         guard !isScanning else { return }
@@ -328,27 +329,42 @@ final class RooCodeDiscoveryService {
     }
 
     private func performServiceDiscovery() async {
-        // 模拟服务发现 - 在实际实现中，这里会扫描网络上的 Roo Code 实例
-        do {
-            try await Task.sleep(for: .seconds(2))
-
-            // 模拟发现的服务
-            let mockService = RooCodeService(
-                name: "Roo Code - Local",
-                websocketURL: URL(string: "ws://localhost:8765")!,
-                version: "1.0.0",
-                platform: "macOS",
-                app: "Roo Code",
-                capabilities: ["ai_conversation", "trigger_send", "echo", "ping_pong"]
-            )
-
-            if !Task.isCancelled {
-                discoveredServices = [mockService]
-            }
-        } catch {
-            if !Task.isCancelled {
-                self.error = "Service discovery failed: \(error.localizedDescription)"
-            }
-        }
+        logger.info("🔍 [DEBUG] Starting Roo Code service discovery process", category: .connection)
+        
+        // 使用真正的网络扫描
+        let services = await networkScanner.scanForServices()
+        
+                if !Task.isCancelled {
+                    logger.info("🔍 [DEBUG] Service discovery completed. Task cancelled: false, Services found: \(services.count)", category: .connection)
+                    
+                    if services.isEmpty {
+                        // 如果没有发现服务，添加本地回退选项
+                        let fallbackService = RooCodeService(
+                            name: "Roo Code - Local (Fallback)",
+                            websocketURL: URL(string: "ws://localhost:8765")!,
+                            version: "1.0.0",
+                            platform: "macOS",
+                            app: "Roo Code",
+                            capabilities: ["ai_conversation", "trigger_send", "echo", "ping_pong"]
+                        )
+                        discoveredServices = [fallbackService]
+                        logger.info("🔍 [DEBUG] No services discovered on network, using fallback localhost:8765", category: .connection)
+                    } else {
+                        // 直接使用发现的服务 - 无需转换
+                        discoveredServices = services
+                        logger.info("🔍 [DEBUG] Successfully discovered \(services.count) Roo Code services on network", category: .connection)
+                        for (index, service) in services.enumerated() {
+                            logger.info("🔍 [DEBUG] Service \(index + 1): \(service.name) at \(service.websocketURL)", category: .connection)
+                        }
+                    }
+                    
+                    // 服务发现完成后，通知ConnectionManager尝试自动连接
+                    logger.info("🔍 [DEBUG] Service discovery notifying ConnectionManager to attempt auto-connection", category: .connection)
+                    Task { @MainActor in
+                        RooCodeConnectionManager.shared.autoConnectIfNeeded()
+                    }
+                } else {
+                    logger.warning("🔍 [DEBUG] Service discovery task was cancelled", category: .connection)
+                }
     }
 }

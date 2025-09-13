@@ -45,9 +45,13 @@ final class RooCodeConnectionManager {
         // 只在未连接且有可用服务时自动连接
         guard !connectionState.isConnected,
               currentService == nil,
-              !discoveredServices.isEmpty else { return }
+              !discoveredServices.isEmpty else { 
+            logger.info("🔍 [DEBUG] autoConnectIfNeeded: Skip - isConnected: \(connectionState.isConnected), currentService: \(currentService?.name ?? "nil"), services: \(discoveredServices.count)", category: .connection)
+            return 
+        }
 
         let bestService = discoveredServices.first!
+        logger.info("🔍 [DEBUG] autoConnectIfNeeded: Starting auto-connection to \(bestService.name) at \(bestService.websocketURL)", category: .connection)
 
         Task {
             await connect(to: bestService)
@@ -62,13 +66,15 @@ final class RooCodeConnectionManager {
         // 扫描完成后自动连接（如果需要），添加超时保护
         Task { @MainActor in
             var waitTime = 0
-            let maxWaitTime = 5000 // 5秒超时
+            let maxWaitTime = 15000 // 15秒超时，给网络扫描足够时间
 
-            // 等待扫描完成，但不超过5秒
+            // 等待扫描完成，但不超过15秒
             while serviceDiscovery.isScanning && waitTime < maxWaitTime {
                 try? await Task.sleep(for: .milliseconds(100))
                 waitTime += 100
             }
+
+            logger.info("🔍 [DEBUG] startScanning: Scan wait completed - isScanning: \(serviceDiscovery.isScanning), waitTime: \(waitTime)ms, services: \(discoveredServices.count)", category: .connection)
 
             // 无论扫描是否完成，都尝试自动连接（如果有服务的话）
             autoConnectIfNeeded()
@@ -86,13 +92,17 @@ final class RooCodeConnectionManager {
 
     /// Connect to a Roo Code service
     func connect(to service: RooCodeService) async {
+        logger.info("🔍 [DEBUG] connect: Attempting to connect to \(service.name) at \(service.websocketURL)", category: .connection)
         currentService = service
         webSocketClient.clearError()
         await webSocketClient.connect(to: service)
 
         // 连接成功后停止扫描
         if webSocketClient.connectionState.isConnected {
+            logger.info("🔍 [DEBUG] connect: Successfully connected to \(service.name), stopping service discovery", category: .connection)
             serviceDiscovery.stopScanning()
+        } else {
+            logger.warning("🔍 [DEBUG] connect: Failed to connect to \(service.name), state: \(webSocketClient.connectionState.description)", category: .connection)
         }
     }
 

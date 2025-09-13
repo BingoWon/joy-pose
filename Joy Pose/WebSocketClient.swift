@@ -66,20 +66,24 @@ final class WebSocketClient {
     /// Modern connection to Roo Code service - Optimized connection flow
     func connect(to service: RooCodeService) async {
         guard let url = service.webSocketURL else {
+            logger.error("🔍 [DEBUG] WebSocketClient.connect: Invalid URL for service \(service.name)", category: .connection)
             connectionState = .failed("Invalid URL")
             return
         }
 
+        logger.info("🔍 [DEBUG] WebSocketClient.connect: Starting WebSocket connection to \(url)", category: .connection)
         disconnect()
         connectionState = .connecting
 
         webSocketTask = urlSession.webSocketTask(with: url)
         webSocketTask?.resume()
+        logger.info("🔍 [DEBUG] WebSocketClient.connect: WebSocket task resumed", category: .connection)
 
         startListening()
 
         // 发送现代化 VisionSync 握手
         let handshakeMessage = VisionMessage.clientHandshake()
+        logger.info("🔍 [DEBUG] WebSocketClient.connect: Sending handshake message", category: .connection)
         await sendMessage(handshakeMessage)
     }
 
@@ -136,6 +140,7 @@ final class WebSocketClient {
             await receiveMessage()
         } catch {
             if connectionState != .disconnected {
+                logger.error("🔍 [DEBUG] WebSocketClient: Connection error: \(error.localizedDescription)", category: .connection)
                 connectionState = .failed("Connection lost: \(error.localizedDescription)")
                 lastError = error.localizedDescription
             }
@@ -164,14 +169,18 @@ final class WebSocketClient {
             // 处理特殊消息类型
             switch visionMessage.type {
             case .connectionAccepted:
+                logger.info("🔍 [DEBUG] WebSocketClient: Connection accepted! State: connected", category: .connection)
                 connectionState = .connected
                 startPingTimer()
             case .connectionRejected:
+                logger.warning("🔍 [DEBUG] WebSocketClient: Connection rejected by server", category: .connection)
                 connectionState = .failed("Connection rejected")
             case .pong:
                 // Pong 响应 - 连接保活
+                logger.debug("🔍 [DEBUG] WebSocketClient: Received pong", category: .connection)
                 break
             default:
+                logger.debug("🔍 [DEBUG] WebSocketClient: Received message type: \(visionMessage.type.rawValue)", category: .connection)
                 break
             }
 
