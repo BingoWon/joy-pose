@@ -8,9 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		D7E9B1D42E74FC4F000613BA /* RealityKitContent in Frameworks */ = {isa = PBXBuildFile; productRef = D7E9B1D32E74FC4F000613BA /* RealityKitContent */; };
-		D7E9B1FA2E74FC51000613BA /* Citadel in Frameworks */ = {isa = PBXBuildFile; productRef = D7E9B1F92E74FC51000613BA /* Citadel */; };
-		D7E9B1FC2E74FC52000613BA /* NIO in Frameworks */ = {isa = PBXBuildFile; productRef = D7E9B1FB2E74FC52000613BA /* NIO */; };
-		D7E9B1FE2E74FC53000613BA /* NIOSSH in Frameworks */ = {isa = PBXBuildFile; productRef = D7E9B1FD2E74FC53000613BA /* NIOSSH */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,9 +58,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				D7E9B1D42E74FC4F000613BA /* RealityKitContent in Frameworks */,
-				D7E9B1FA2E74FC51000613BA /* Citadel in Frameworks */,
-				D7E9B1FC2E74FC52000613BA /* NIO in Frameworks */,
-				D7E9B1FE2E74FC53000613BA /* NIOSSH in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,9 +119,6 @@
 			name = "Joy Pose";
 			packageProductDependencies = (
 				D7E9B1D32E74FC4F000613BA /* RealityKitContent */,
-				D7E9B1F92E74FC51000613BA /* Citadel */,
-				D7E9B1FB2E74FC52000613BA /* NIO */,
-				D7E9B1FD2E74FC53000613BA /* NIOSSH */,
 			);
 			productName = "Joy Pose";
 			productReference = D7E9B1CE2E74FC4F000613BA /* Joy Pose.app */;
@@ -186,9 +177,6 @@
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D7E9B1CF2E74FC4F000613BA /* Products */;
-			packageReferences = (
-				D7E9B1FF2E74FC51000613BA /* XCRemoteSwiftPackageReference "Citadel" */,
-			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -484,36 +472,10 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		D7E9B1FF2E74FC51000613BA /* XCRemoteSwiftPackageReference "Citadel" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/orlandos-nl/Citadel.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.7.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
 		D7E9B1D32E74FC4F000613BA /* RealityKitContent */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RealityKitContent;
-		};
-		D7E9B1F92E74FC51000613BA /* Citadel */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = D7E9B1FF2E74FC51000613BA /* XCRemoteSwiftPackageReference "Citadel" */;
-			productName = Citadel;
-		};
-		D7E9B1FB2E74FC52000613BA /* NIO */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = D7E9B1FF2E74FC51000613BA /* XCRemoteSwiftPackageReference "Citadel" */;
-			productName = NIO;
-		};
-		D7E9B1FD2E74FC53000613BA /* NIOSSH */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = D7E9B1FF2E74FC51000613BA /* XCRemoteSwiftPackageReference "Citadel" */;
-			productName = NIOSSH;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
