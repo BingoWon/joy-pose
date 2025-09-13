@@ -7,15 +7,13 @@
 
 import SwiftUI
 
-/// Maintains app-wide state
-@MainActor
-@Observable
+@MainActor @Observable
 class AppModel {
-    let immersiveSpaceID = "ImmersiveSpace"
-    enum ImmersiveSpaceState {
-        case closed
-        case inTransition
-        case open
+    // Placeholder app model for remote development environment
+    var isConnected = false
+    var connectionStatus = "Not Connected"
+    
+    init() {
+        print("🎯 JoyPose AppModel initialized")
     }
-    var immersiveSpaceState = ImmersiveSpaceState.closed
 }
