@@ -61,6 +61,12 @@ struct EnhancedInputView: View {
         .onChange(of: text) { _, newValue in
             inputManager.text = newValue
         }
+        .onAppear {
+            // 自动聚焦到文本输入框
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isTextFieldFocused = true
+            }
+        }
     }
     
     private var mentionsPopover: some View {
@@ -192,15 +198,20 @@ struct EnhancedInputView: View {
         HStack(alignment: .bottom, spacing: 12) {
             // Text Input
             TextField("Ask Roo Code anything...", text: $text, axis: .vertical)
-                .textFieldStyle(.plain)
+                .textFieldStyle(.roundedBorder)
                 .font(.body)
                 .lineLimit(1...6)
                 .focused($isTextFieldFocused)
                 .disabled(!isEnabled || isSending)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.sentences)
                 .onSubmit {
                     if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         onSend()
                     }
+                }
+                .onTapGesture {
+                    isTextFieldFocused = true
                 }
             
             // Send Button
@@ -485,3 +496,4 @@ struct ModeSelectorView: View {
         .padding()
     }
 }
+
