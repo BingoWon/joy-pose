@@ -137,9 +137,11 @@ class SSHTerminalSession {
                 await addOutput(outputString)
             }
             
-            // Update current directory if it's a cd command
+            // Update current directory if it's a cd command or pwd command
             if command.hasPrefix("cd ") {
                 await executeCommand("pwd", addToHistory: false)
+            } else if command == "pwd" && !outputString.isEmpty {
+                currentDirectory = outputString.trimmingCharacters(in: .whitespacesAndNewlines)
             }
             
         } catch {
@@ -164,6 +166,13 @@ class SSHTerminalSession {
     @MainActor
     func clearOutput() {
         terminalOutput.removeAll()
+    }
+    
+    /// Clear terminal output (alias for clearOutput)
+    @MainActor
+    func clearTerminal() {
+        clearOutput()
+        logger.info("Session \(sessionId): Terminal cleared", category: .terminal)
     }
     
     /// Get command from history
