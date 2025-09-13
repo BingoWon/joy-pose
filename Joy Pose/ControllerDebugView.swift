@@ -21,16 +21,6 @@ struct ControllerDebugView: View {
     @State private var triggerValues = TriggerValues()
     @State private var stickValues = StickValues()
     
-    // Rainbow color configuration for light bar demo
-    private let rainbowColors: [(name: String, color: Color, rgb: (Float, Float, Float))] = [
-        ("Red", .red, (1.0, 0.0, 0.0)),
-        ("Orange", .orange, (1.0, 0.5, 0.0)),
-        ("Yellow", .yellow, (1.0, 1.0, 0.0)),
-        ("Green", .green, (0.0, 1.0, 0.0)),
-        ("Blue", .blue, (0.0, 0.0, 1.0)),
-        ("Indigo", Color(red: 0.29, green: 0.0, blue: 0.51), (0.29, 0.0, 0.51)),
-        ("Violet", Color(red: 0.56, green: 0.0, blue: 1.0), (0.56, 0.0, 1.0))
-    ]
 
     var body: some View {
         ScrollView {
@@ -38,16 +28,7 @@ struct ControllerDebugView: View {
                 // Header
                 headerView
 
-                // Controller info with battery and light bar
-                enhancedControllerInfoView
-
-                // DualSense visual controller representation
-                dualSenseControllerView
-
-                // Light bar color controls
-                lightBarControlView
-
-                // Enhanced terminal functions guide
+                // Enhanced terminal functions guide with integrated controller status
                 enhancedTerminalFunctionsView
 
                 // Advanced features
@@ -66,335 +47,396 @@ struct ControllerDebugView: View {
     }
 
     private var headerView: some View {
-        HStack(spacing: 16) {
-            // PlayStation logo with connection status
-            HStack(spacing: 8) {
-                Image(systemName: "playstation.logo")
-                    .font(.title2)
-                    .foregroundColor(isControllerConnected ? .blue : .gray)
-
-                Image(systemName: "gamecontroller.fill")
-                    .font(.title2)
-                    .foregroundColor(isControllerConnected ? .green : .red)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("DualSense Controller Debug")
-                    .font(.headline)
-                    .fontWeight(.bold)
-
-                Text(isControllerConnected ? "\(controllerName) - Connected" : "No Controller Connected")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                if isControllerConnected && batteryLevel > 0 {
-                    Text("Battery: \(Int(batteryLevel * 100))%")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
-
-            Spacer()
-
-            HStack(spacing: 12) {
-                Button("Close") {
-                    onClose?()
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
-        }
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-    }
-
-    private var enhancedControllerInfoView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Controller Information")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-
-            HStack(spacing: 16) {
-                // Basic info
-                VStack(alignment: .leading, spacing: 4) {
-                    InfoRow(label: "Name", value: "DualSense Controller")
-                    InfoRow(label: "Vendor", value: "Sony Interactive Entertainment")
-                    InfoRow(label: "Category", value: "Extended Gamepad")
-                    InfoRow(label: "Connection", value: "USB")
-                }
-
-                Spacer()
-
-                // Battery and status
-                VStack(alignment: .trailing, spacing: 8) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "battery.75percent")
-                            .foregroundColor(.green)
-                        Text("75%")
-                            .font(.subheadline)
-                            .foregroundColor(.green)
-                    }
-
-                    HStack(spacing: 8) {
+        VStack(spacing: 16) {
+            // Top row with status and close button
+            HStack {
+                // Connection status with animated indicators
+                HStack(spacing: 12) {
+                    ZStack {
                         Circle()
-                            .fill(.blue)
-                            .frame(width: 12, height: 12)
-                        Text("Light Bar")
+                            .fill(isControllerConnected ? .green.opacity(0.2) : .red.opacity(0.2))
+                            .frame(width: 50, height: 50)
+                        
+                        Image(systemName: "gamecontroller.fill")
+                            .font(.title2)
+                            .foregroundColor(isControllerConnected ? .green : .red)
+                            .symbolEffect(.pulse, isActive: isControllerConnected)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Controller Status")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                            .tracking(0.5)
+                        
+                        Text(isControllerConnected ? "Connected" : "Disconnected")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(isControllerConnected ? .green : .red)
                     }
                 }
+                
+                Spacer()
+                
+                // Close button with enhanced styling
+                Button(action: { onClose?() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .hoverEffect(.lift)
             }
-        }
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .frame(maxWidth: .infinity)
-    }
-
-    private var dualSenseControllerView: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("DualSense Controller Status")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-
-            VStack(spacing: 20) {
-                // Battery status - DualSense style
-                ZStack {
-                    Image(systemName: "battery.75percent")
-                        .font(.system(size: 50))
-                        .foregroundColor(.green)
-
-                    Text("75%")
-                        .font(.subheadline)
-                        .foregroundColor(.white)
-                        .fontWeight(.bold)
-                }
-
-                // Triggers section - original project layout
-                VStack {
-                    Text("Triggers")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    HStack(spacing: 40) {
-                        // L2 Trigger
-                        VStack(spacing: 8) {
-                            Text("L2")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.yellow)
-
-                            ProgressView(value: 0.3)
-                                .progressViewStyle(LinearProgressViewStyle(tint: .yellow))
-                                .frame(width: 60)
-
-                            Text("30%")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-
-                        // R2 Trigger
-                        VStack(spacing: 8) {
-                            Text("R2")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.yellow)
-
-                            ProgressView(value: 0.7)
-                                .progressViewStyle(LinearProgressViewStyle(tint: .yellow))
-                                .frame(width: 60)
-
-                            Text("70%")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
+            
+            // Controller information section
+            if isControllerConnected {
+                HStack(spacing: 20) {
+                    // Controller icon with branding
+                    VStack(spacing: 8) {
+                        Image(systemName: "playstation.logo")
+                            .font(.system(size: 28))
+                            .foregroundColor(.blue)
+                            .symbolEffect(.variableColor.iterative, isActive: true)
+                        
+                        Text("DualSense")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
                     }
-                }
-
-                // Analog sticks section
-                VStack {
-                    Text("Analog Sticks")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    HStack(spacing: 40) {
-                        // Left stick
-                        VStack(spacing: 8) {
-                            Text("Left Stick")
+                    
+                    Divider()
+                        .frame(height: 40)
+                    
+                    // Device details
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Device:")
                                 .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.mint)
-
-                            ZStack {
-                                Circle()
-                                    .stroke(.gray.opacity(0.3), lineWidth: 2)
-                                    .frame(width: 60, height: 60)
-
-                                Circle()
-                                    .fill(.mint)
-                                    .frame(width: 8, height: 8)
-                                    .offset(x: -10, y: 5) // Demo position
+                                .foregroundColor(.secondary)
+                            Text(controllerName)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        
+                        if batteryLevel > 0 {
+                            HStack {
+                                Text("Battery:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                HStack(spacing: 4) {
+                                    Image(systemName: batteryLevel > 0.2 ? "battery.100" : "battery.25")
+                                        .font(.caption)
+                                        .foregroundColor(batteryLevel > 0.2 ? .green : .orange)
+                                    
+                                    Text("\(Int(batteryLevel * 100))%")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(batteryLevel > 0.2 ? .green : .orange)
+                                }
                             }
-
-                            Text("(-0.3, 0.2)")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-
-                        // Right stick
-                        VStack(spacing: 8) {
-                            Text("Right Stick")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.mint)
-
-                            ZStack {
-                                Circle()
-                                    .stroke(.gray.opacity(0.3), lineWidth: 2)
-                                    .frame(width: 60, height: 60)
-
-                                Circle()
-                                    .fill(.mint)
-                                    .frame(width: 8, height: 8)
-                                    .offset(x: 15, y: -8) // Demo position
-                            }
-
-                            Text("(0.5, -0.3)")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
                         }
                     }
-                }
-
-                // Face buttons section
-                VStack {
-                    Text("Face Buttons")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    HStack(spacing: 20) {
-                        FaceButtonView(symbol: "×", color: .green, isPressed: true)
-                        FaceButtonView(symbol: "○", color: .orange, isPressed: false)
-                        FaceButtonView(symbol: "□", color: .blue, isPressed: false)
-                        FaceButtonView(symbol: "△", color: .purple, isPressed: true)
-                    }
-                }
-            }
-        }
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-    }
-
-    private var lightBarControlView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Light Bar Control (Demo)")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-
-            HStack(spacing: 12) {
-                ForEach(rainbowColors, id: \.name) { colorItem in
-                    Button {
-                        // UI only - no functionality
-                    } label: {
+                    
+                    Spacer()
+                    
+                    // Real-time status indicator
+                    VStack(spacing: 4) {
                         Circle()
-                            .fill(colorItem.color)
-                            .frame(width: 32, height: 32)
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(.white.opacity(0.8), lineWidth: 2)
-                            )
+                            .fill(.green)
+                            .frame(width: 8, height: 8)
+                            .symbolEffect(.pulse, isActive: true)
+                        
+                        Text("LIVE")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.green)
+                            .tracking(1)
                     }
-                    .buttonStyle(.plain)
-                    .help("Demo: Set light bar to \(colorItem.name)")
                 }
+                .padding(.horizontal, 8)
             }
         }
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(20)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.quaternary, lineWidth: 1)
+        )
     }
+
+
+
 
     private var enhancedTerminalFunctionsView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Terminal Functions Guide (UI Demo)")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 8) {
-                // Button function items - with real-time status display
-                enhancedFunctionItem("Cross (×)", "Execute command", .green, isPressed: buttonStates.buttonA)
-                enhancedFunctionItem("Circle (○)", "Delete", .orange, isPressed: buttonStates.buttonB)
-                enhancedFunctionItem("Square (□)", "Backspace", .blue, isPressed: buttonStates.buttonX)
-                enhancedFunctionItem("Triangle (△)", "Quick commands", .purple, isPressed: buttonStates.buttonY)
-                enhancedFunctionItem("L1", "Previous word", .cyan, isPressed: buttonStates.leftShoulder)
-                enhancedFunctionItem("R1", "Next word", .cyan, isPressed: buttonStates.rightShoulder)
-
-                // Trigger function items - with pressure value display
-                enhancedTriggerItem(trigger: "L2", function: "Scroll up", color: .yellow, triggerValue: triggerValues.leftTrigger)
-                enhancedTriggerItem(trigger: "R2", function: "Scroll down", color: .yellow, triggerValue: triggerValues.rightTrigger)
-
-                // D-pad function items - with status display
-                enhancedDPadItem(dpad: "D-Pad ↑↓", function: "Command history", color: .pink, isActive: buttonStates.dpadUp || buttonStates.dpadDown)
-                enhancedDPadItem(dpad: "D-Pad ←→", function: "Move cursor", color: .pink, isActive: buttonStates.dpadLeft || buttonStates.dpadRight)
-
-                // Joystick function items - with position display
-                enhancedStickItem(stick: "Left Stick", function: "Cursor control", color: .mint, position: "(\(String(format: "%.1f", stickValues.leftStickX)), \(String(format: "%.1f", stickValues.leftStickY)))")
-                enhancedStickItem(stick: "Right Stick", function: "Scroll terminal", color: .mint, position: "(\(String(format: "%.1f", stickValues.rightStickX)), \(String(format: "%.1f", stickValues.rightStickY)))")
+        VStack(alignment: .leading, spacing: 20) {
+            // Enhanced section header
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.blue.gradient.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: "gamecontroller.fill")
+                        .foregroundStyle(.blue.gradient)
+                        .font(.title2)
+                        .symbolEffect(.variableColor.iterative, isActive: isControllerConnected)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("DualSense Terminal Functions")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                    
+                    Text("Real-time controller input mapping with status")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                // Controller status with battery info
+                VStack(spacing: 4) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(isControllerConnected ? .green : .red)
+                            .frame(width: 8, height: 8)
+                            .scaleEffect(isControllerConnected ? 1.2 : 1.0)
+                            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), 
+                                     value: isControllerConnected)
+                        
+                        Text(isControllerConnected ? "CONNECTED" : "DISCONNECTED")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(isControllerConnected ? .green : .red)
+                            .textCase(.uppercase)
+                            .tracking(0.8)
+                    }
+                    
+                    if isControllerConnected {
+                        HStack(spacing: 4) {
+                            Image(systemName: "battery.75percent")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                            Text("75%")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
             }
-        }
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-    }
-
-    private var advancedFeaturesView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Advanced Features (UI Demo)")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-
+            
+            // Unified 3x4 grid layout with integrated controller status
             LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible()),
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 12) {
-                FeatureCard(
-                    title: "Haptic Feedback",
-                    description: "Adaptive trigger resistance",
-                    icon: "waveform.path",
-                    color: .purple,
-                    isEnabled: true
-                )
-
-                FeatureCard(
-                    title: "Motion Sensor",
-                    description: "Gyroscope and accelerometer",
-                    icon: "gyroscope",
-                    color: .orange,
-                    isEnabled: false
-                )
-
-                FeatureCard(
-                    title: "Touchpad",
-                    description: "Multi-touch surface",
-                    icon: "hand.tap.fill",
-                    color: .blue,
-                    isEnabled: true
-                )
-
-                FeatureCard(
-                    title: "Speaker",
-                    description: "Built-in audio feedback",
-                    icon: "speaker.wave.2.fill",
+                // Row 1: Face buttons
+                enhancedControllerFunctionItem(
+                    icon: "cross.circle.fill",
+                    title: "Cross (×)",
+                    function: "Execute Command",
                     color: .green,
-                    isEnabled: true
+                    isPressed: buttonStates.buttonA,
+                    statusValue: nil
+                )
+                enhancedControllerFunctionItem(
+                    icon: "circle.circle.fill",
+                    title: "Circle (○)",
+                    function: "Cancel/Delete",
+                    color: .orange,
+                    isPressed: buttonStates.buttonB,
+                    statusValue: nil
+                )
+                enhancedControllerFunctionItem(
+                    icon: "square.fill",
+                    title: "Square (□)",
+                    function: "Backspace",
+                    color: .blue,
+                    isPressed: buttonStates.buttonX,
+                    statusValue: nil
+                )
+                enhancedControllerFunctionItem(
+                    icon: "triangle.fill",
+                    title: "Triangle (△)",
+                    function: "Menu/Options",
+                    color: .red,
+                    isPressed: buttonStates.buttonY,
+                    statusValue: nil
+                )
+                
+                // Row 2: Triggers and shoulders
+                enhancedControllerFunctionItem(
+                    icon: "l2.rectangle.roundedbottom",
+                    title: "L2 Trigger",
+                    function: "Volume Down",
+                    color: .purple,
+                    isPressed: triggerValues.leftTrigger > 0.1,
+                    statusValue: triggerValues.leftTrigger
+                )
+                enhancedControllerFunctionItem(
+                    icon: "r2.rectangle.roundedbottom",
+                    title: "R2 Trigger",
+                    function: "Volume Up",
+                    color: .purple,
+                    isPressed: triggerValues.rightTrigger > 0.1,
+                    statusValue: triggerValues.rightTrigger
+                )
+                enhancedControllerFunctionItem(
+                    icon: "l1.rectangle.roundedtop",
+                    title: "L1 Shoulder",
+                    function: "Previous Track",
+                    color: .cyan,
+                    isPressed: buttonStates.leftShoulder,
+                    statusValue: nil
+                )
+                enhancedControllerFunctionItem(
+                    icon: "r1.rectangle.roundedtop",
+                    title: "R1 Shoulder",
+                    function: "Next Track",
+                    color: .cyan,
+                    isPressed: buttonStates.rightShoulder,
+                    statusValue: nil
+                )
+                
+                // Row 3: D-Pad and thumbsticks
+                enhancedControllerFunctionItem(
+                    icon: "dpad.fill",
+                    title: "D-Pad",
+                    function: "Navigation",
+                    color: .pink,
+                    isPressed: buttonStates.dpadUp || buttonStates.dpadDown || buttonStates.dpadLeft || buttonStates.dpadRight,
+                    statusValue: nil
+                )
+                enhancedControllerFunctionItem(
+                    icon: "l.joystick",
+                    title: "Left Stick",
+                    function: "Cursor Control",
+                    color: .mint,
+                    isPressed: abs(stickValues.leftStickX) > 0.1 || abs(stickValues.leftStickY) > 0.1,
+                    statusValue: sqrt(stickValues.leftStickX * stickValues.leftStickX + stickValues.leftStickY * stickValues.leftStickY)
+                )
+                enhancedControllerFunctionItem(
+                    icon: "r.joystick",
+                    title: "Right Stick",
+                    function: "Scroll Terminal",
+                    color: .mint,
+                    isPressed: abs(stickValues.rightStickX) > 0.1 || abs(stickValues.rightStickY) > 0.1,
+                    statusValue: sqrt(stickValues.rightStickX * stickValues.rightStickX + stickValues.rightStickY * stickValues.rightStickY)
+                )
+                enhancedControllerFunctionItem(
+                    icon: "touchpad",
+                    title: "Touchpad",
+                    function: "Mouse Control",
+                    color: .indigo,
+                    isPressed: false, // TODO: Add touchpad support
+                    statusValue: nil
                 )
             }
         }
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+                .stroke(.secondary.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+    }
+
+    private var advancedFeaturesView: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            // Enhanced section header
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.purple.gradient.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: "gearshape.2.fill")
+                        .foregroundStyle(.purple.gradient)
+                        .font(.title2)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Advanced Features")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                    
+                    Text("Hardware capabilities and status")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                // Feature count indicator
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.caption)
+                    
+                    Text("3/4")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                        .monospacedDigit()
+                }
+            }
+            
+            // Enhanced feature grid
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 16),
+                GridItem(.flexible(), spacing: 16)
+            ], spacing: 16) {
+                EnhancedFeatureCard(
+                    title: "Haptic Feedback",
+                    description: "Adaptive trigger resistance with precision force feedback",
+                    icon: "waveform.path",
+                    color: .purple,
+                    isEnabled: isControllerConnected,
+                    statusText: isControllerConnected ? "Active" : "Unavailable"
+                )
+
+                EnhancedFeatureCard(
+                    title: "Motion Sensor",
+                    description: "6-axis gyroscope and accelerometer for spatial tracking",
+                    icon: "gyroscope",
+                    color: .orange,
+                    isEnabled: false,
+                    statusText: "Not Supported"
+                )
+
+                EnhancedFeatureCard(
+                    title: "Touchpad",
+                    description: "Multi-touch capacitive surface with click detection",
+                    icon: "hand.tap.fill",
+                    color: .blue,
+                    isEnabled: isControllerConnected,
+                    statusText: isControllerConnected ? "Ready" : "Disconnected"
+                )
+
+                EnhancedFeatureCard(
+                    title: "Audio Output",
+                    description: "Built-in speaker with 3D spatial audio support",
+                    icon: "speaker.wave.3.fill",
+                    color: .green,
+                    isEnabled: isControllerConnected,
+                    statusText: isControllerConnected ? "Enabled" : "Muted"
+                )
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+                .stroke(.secondary.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -417,159 +459,10 @@ struct InfoRow: View {
     }
 }
 
-struct FaceButtonView: View {
-    let symbol: String
-    let color: Color
-    let isPressed: Bool
 
-    var body: some View {
-        VStack(spacing: 4) {
-            Circle()
-                .fill(isPressed ? color : .gray.opacity(0.3))
-                .frame(width: 32, height: 32)
-                .overlay(
-                    Text(symbol)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(isPressed ? .white : .gray)
-                )
 
-            Text(symbol)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-        }
-    }
-}
 
-struct enhancedFunctionItem: View {
-    let button: String
-    let function: String
-    let color: Color
-    let isPressed: Bool
 
-    init(_ button: String, _ function: String, _ color: Color, isPressed: Bool = false) {
-        self.button = button
-        self.function = function
-        self.color = color
-        self.isPressed = isPressed
-    }
-
-    var body: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(isPressed ? color : .gray.opacity(0.3))
-                    .frame(width: 8, height: 8)
-
-                Text(button)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(isPressed ? color : .secondary)
-            }
-
-            Text(function)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
-    }
-}
-
-struct enhancedTriggerItem: View {
-    let trigger: String
-    let function: String
-    let color: Color
-    let triggerValue: Float
-
-    var body: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 4) {
-                Text(trigger)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(color)
-
-                ProgressView(value: triggerValue)
-                    .progressViewStyle(LinearProgressViewStyle(tint: color))
-                    .frame(width: 30)
-            }
-
-            Text(function)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-
-            Text("\(Int(triggerValue * 100))%")
-                .font(.caption2)
-                .foregroundColor(color)
-        }
-        .padding(8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
-    }
-}
-
-struct enhancedDPadItem: View {
-    let dpad: String
-    let function: String
-    let color: Color
-    let isActive: Bool
-
-    var body: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 4) {
-                Image(systemName: "dpad.fill")
-                    .font(.caption)
-                    .foregroundColor(isActive ? color : .gray)
-
-                Text(dpad)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(isActive ? color : .secondary)
-            }
-
-            Text(function)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
-    }
-}
-
-struct enhancedStickItem: View {
-    let stick: String
-    let function: String
-    let color: Color
-    let position: String
-
-    var body: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 4) {
-                Image(systemName: "circle.circle")
-                    .font(.caption)
-                    .foregroundColor(color)
-
-                Text(stick)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(color)
-            }
-
-            Text(function)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-
-            Text(position)
-                .font(.caption2)
-                .foregroundColor(color)
-        }
-        .padding(8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
-    }
-}
 
 struct FeatureCard: View {
     let title: String
@@ -750,6 +643,259 @@ extension ControllerDebugView {
         buttonStates = ButtonStates()
         triggerValues = TriggerValues()
         stickValues = StickValues()
+    }
+}
+
+// MARK: - Enhanced Feature Card Component
+
+struct EnhancedFeatureCard: View {
+    let title: String
+    let description: String
+    let icon: String
+    let color: Color
+    let isEnabled: Bool
+    let statusText: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            headerSection
+            descriptionSection
+            if isEnabled {
+                progressSection
+            }
+        }
+        .padding(16)
+        .background(backgroundStyle)
+        .overlay(alignment: .topTrailing) {
+            checkmarkOverlay
+        }
+        .scaleEffect(isEnabled ? 1.0 : 0.98)
+        .animation(.easeInOut(duration: 0.2), value: isEnabled)
+    }
+    
+    private var headerSection: some View {
+        HStack(alignment: .top, spacing: 12) {
+            iconView
+            titleAndStatusView
+            Spacer()
+        }
+    }
+    
+    private var iconView: some View {
+        ZStack {
+            Circle()
+                .fill(isEnabled ? AnyShapeStyle(color.gradient.opacity(0.2)) : AnyShapeStyle(Color.gray.opacity(0.1)))
+                .frame(width: 44, height: 44)
+            
+            Image(systemName: icon)
+                .foregroundStyle(isEnabled ? color.gradient : Color.gray.gradient)
+                .font(.title2)
+        }
+    }
+    
+    private var titleAndStatusView: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+            
+            statusIndicator
+        }
+    }
+    
+    private var statusIndicator: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(isEnabled ? .green : .gray)
+                .frame(width: 6, height: 6)
+            
+            Text(statusText)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(isEnabled ? .green : .gray)
+                .textCase(.uppercase)
+                .tracking(0.5)
+        }
+    }
+    
+    private var descriptionSection: some View {
+        Text(description)
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .lineLimit(3)
+            .multilineTextAlignment(.leading)
+    }
+    
+    private var progressSection: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<4, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(index < 3 ? color.opacity(0.8) : color.opacity(0.2))
+                    .frame(height: 3)
+                    .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.1), value: isEnabled)
+            }
+        }
+    }
+    
+    private var backgroundStyle: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(isEnabled ? color.opacity(0.05) : Color.gray.opacity(0.02))
+            .stroke(isEnabled ? color.opacity(0.2) : Color.gray.opacity(0.1), lineWidth: 1)
+    }
+    
+    @ViewBuilder
+    private var checkmarkOverlay: some View {
+        if isEnabled {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.green)
+                .font(.caption)
+                .offset(x: -8, y: 8)
+        }
+    }
+}
+
+// MARK: - Enhanced Controller Function Item Component
+
+struct enhancedControllerFunctionItem: View {
+    let icon: String
+    let title: String
+    let function: String
+    let color: Color
+    let isPressed: Bool
+    let statusValue: Float?
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            iconView
+            titleAndFunctionView
+            statusIndicatorView
+        }
+        .padding(12)
+        .background(backgroundView)
+        .hoverEffect(.lift)
+        .animation(.easeInOut(duration: 0.3), value: isPressed)
+    }
+    
+    private var iconView: some View {
+        ZStack {
+            Circle()
+                .fill(isPressed ? AnyShapeStyle(color.gradient.opacity(0.3)) : AnyShapeStyle(Color.gray.opacity(0.1)))
+                .frame(width: 32, height: 32)
+                .scaleEffect(isPressed ? 1.1 : 1.0)
+                .animation(.easeInOut(duration: 0.2), value: isPressed)
+            
+            Image(systemName: icon)
+                .foregroundStyle(isPressed ? color.gradient : Color.gray.gradient)
+                .font(.title3)
+                .symbolEffect(.bounce, value: isPressed)
+        }
+    }
+    
+    private var titleAndFunctionView: some View {
+        VStack(spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(isPressed ? color : .primary)
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+            
+            Text(function)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+    }
+    
+    @ViewBuilder
+    private var statusIndicatorView: some View {
+        if let statusValue = statusValue {
+            progressView(statusValue)
+        } else {
+            buttonStatusView
+        }
+    }
+    
+    private func progressView(_ value: Float) -> some View {
+        HStack(spacing: 2) {
+            ProgressView(value: value)
+                .progressViewStyle(LinearProgressViewStyle(tint: color))
+                .frame(height: 2)
+            
+            Text("\(Int(value * 100))%")
+                .font(.caption2)
+                .foregroundColor(color)
+                .frame(width: 25)
+        }
+    }
+    
+    private var buttonStatusView: some View {
+        HStack(spacing: 2) {
+            Circle()
+                .fill(isPressed ? color : Color.gray.opacity(0.3))
+                .frame(width: 4, height: 4)
+            
+            Text(isPressed ? "ACTIVE" : "IDLE")
+                .font(.caption2)
+                .foregroundColor(isPressed ? color : .secondary)
+                .fontWeight(.medium)
+                .textCase(.uppercase)
+                .tracking(0.3)
+        }
+    }
+    
+    private var backgroundView: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(.ultraThinMaterial)
+            .stroke(isPressed ? color.opacity(0.4) : Color.gray.opacity(0.2), lineWidth: 1)
+    }
+}
+
+// MARK: - Enhanced Info Card Component
+
+struct EnhancedInfoCard: View {
+    let icon: String
+    let title: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .foregroundStyle(color.gradient)
+                    .font(.title3)
+                
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+                
+                Spacer()
+            }
+            
+            Text(value)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+                .lineLimit(2)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(color.opacity(0.1))
+                .stroke(color.opacity(0.3), lineWidth: 1)
+        )
+        .overlay(alignment: .topTrailing) {
+            Circle()
+                .fill(color.opacity(0.2))
+                .frame(width: 6, height: 6)
+                .offset(x: -8, y: 8)
+        }
     }
 }
 
