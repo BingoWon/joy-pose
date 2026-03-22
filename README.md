@@ -27,11 +27,9 @@ Built at **[VibeHacks #01](https://lu.ma/vibehacks)** hackathon in Beijing, Sept
 
 ## Demo
 
-https://github.com/user-attachments/assets/demo
+> JoyPose running on Apple Vision Pro — SSH terminal, file manager, AI agent conversation, and game controller input, all in spatial windows.
 
-> *The video below shows JoyPose running on Apple Vision Pro — SSH terminal, file manager, AI agent conversation, and game controller input all working in spatial windows.*
-
-https://github.com/BingoWon/joy-pose/raw/main/docs/demo.mp4
+<video src="https://github.com/BingoWon/joy-pose/raw/main/docs/demo.mp4" controls width="100%"></video>
 
 ## The Problem
 
